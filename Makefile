@@ -4,7 +4,7 @@
 
 # 1. Design Configuration
 # Set this to the base name of your testbench entity (without _testbench)
-TOP_MODULE = multiplier
+TOP_MODULE = counter
 
 # 2. Automatically Find and Separate VHDL Files
 ALL_SOURCES := $(wildcard *.vhd)
@@ -28,7 +28,7 @@ FLAGS     = --std=08 # Adjust to --std=93 or --std=02 depending on your VHDL ver
 .PHONY: all analyze_core analyze_tb analyze elaborate run view clean
 
 # Default target
-all: run
+all: view
 
 # Step 1a: Analyze core design files first
 analyze_core: $(CORE_SOURCES)
@@ -45,17 +45,20 @@ analyze: analyze_tb
 
 # Step 2: Elaborate the specific testbench entity
 elaborate: analyze
+	@echo "Elaborating testbench: ${TB_ENTITY}"
 	$(GHDL) -e $(FLAGS) $(TB_ENTITY)
 
 # Step 3: Run the simulation and dump the VCD file
 run: elaborate
+	@echo "Running testbench: ${TB_ENTITY}"
 	$(GHDL) -r $(FLAGS) $(TB_ENTITY) --vcd=$(VCD_FILE)
 
 # Step 4: Open the results in GTKWave
 view: run
+	@echo "Viewing vcd file"
 	$(WAVE_VIEW) $(VCD_FILE)
 
 # Clean up generated simulation framework files
 clean:
 	$(GHDL) --clean
-	rm -f *.o *.cf $(TB_ENTITY) $(VCD_FILE)
+	rm -f *.o *.cf *_testbench *.vcd

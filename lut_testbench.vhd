@@ -8,7 +8,7 @@ end entity;
 architecture sim of lut_testbench is
     constant ADDR_WIDTH : integer := 8;
     constant DATA_WIDTH : integer := 12;
-    constant DELAY_PERIOD : time := 10 ns;
+    constant DELAY_PERIOD : time := 1 ns;
 
     signal addr     : std_logic_vector(ADDR_WIDTH-1 downto 0) := (others => '0');
     signal output   : std_logic_vector(DATA_WIDTH-1 downto 0);
