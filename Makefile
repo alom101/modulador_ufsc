@@ -4,7 +4,7 @@
 
 # 1. Design Configuration
 # Set this to the base name of your testbench entity (without _testbench)
-TOP_MODULE = lut
+TOP_MODULE = multiplier
 
 # 2. Automatically Find and Separate VHDL Files
 ALL_SOURCES := $(wildcard *.vhd)

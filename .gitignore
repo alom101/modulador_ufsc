@@ -1,3 +1,5 @@
 .ipynb_checkpoints
+*testbench
+work-obj*
 *.vcd
 *.o
