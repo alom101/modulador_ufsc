@@ -3,7 +3,7 @@
 # ==============================================================================
 
 # Set this to the base name of your testbench entity (without _testbench)
-TOP_MODULE = carrier_generator
+TOP_MODULE = modulator
 
 
 # File lists

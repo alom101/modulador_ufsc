@@ -4,67 +4,70 @@ use ieee.numeric_std.all;
 
 entity am_modulator is
     generic (
-        ADDR_WIDTH : integer := 8;  -- Address width for the carrier LUT
-        DATA_WIDTH : integer := 12  -- Resolution of the sine wave and message
+        CLK_FREQ     : real := 100_000_000.0; -- 100 MHz default system clock 
+        DESIRED_FREQ : real := 390_625.0;     -- Target RF carrier frequency
+        DATA_WIDTH   : integer := 12          -- Bit resolution of the carrier wave and message 
     );
     port (
-        addr        : in  std_logic_vector(ADDR_WIDTH-1 downto 0); -- Controls carrier frequency
-        msg         : in  std_logic_vector(DATA_WIDTH-1 downto 0); -- Incoming modulating/message signal
-        am_out      : out std_logic_vector((2*DATA_WIDTH)-1 downto 0) -- Modulated output
+        clk         : in  std_logic;                                  -- Driven clock link
+        msg         : in  std_logic_vector(DATA_WIDTH-1 downto 0);    -- Modulating baseband signal 
+        am_out      : out std_logic_vector((2*DATA_WIDTH)-1 downto 0) -- Complete AM signal output 
     );
 end entity am_modulator;
 
 architecture structural of am_modulator is
 
-    -- Component Declaration for the Look-Up Table (Carrier Generator)
-    component lut is
+    -- 1. Component Declaration for the Unified Carrier Generator
+    component carrier_generator is
         generic (
-            ADDR_WIDTH : integer := 8;
-            DATA_WIDTH : integer := 12
+            CLK_FREQ     : real := 100_000_000.0;
+            DESIRED_FREQ : real := 390_625.0;
+            WIDTH        : positive := 12
         );
         port (
-            addr     : in  std_logic_vector(ADDR_WIDTH-1 downto 0);
-            output   : out std_logic_vector(DATA_WIDTH-1 downto 0)
+            clk        : in  std_logic;
+            sine_out   : out std_logic_vector(WIDTH-1 downto 0)
         );
     end component;
 
-    -- Component Declaration for the Multiplier
+    -- 2. Component Declaration for the Signed Multiplier 
     component multiplier is
         generic (
-            DATA_WIDTH : integer := 8
+            DATA_WIDTH : integer := 8 
         );
         port (
-            carrier     : in  std_logic_vector(DATA_WIDTH-1 downto 0);
-            msg         : in  std_logic_vector(DATA_WIDTH-1 downto 0);
-            am_signal   : out std_logic_vector((2*DATA_WIDTH)-1 downto 0)
+            carrier     : in  std_logic_vector(DATA_WIDTH-1 downto 0); 
+            msg         : in  std_logic_vector(DATA_WIDTH-1 downto 0); 
+            am_signal   : out std_logic_vector((2*DATA_WIDTH)-1 downto 0) 
         );
     end component;
 
-    -- Internal Signal to connect the LUT carrier output to the Multiplier
-    signal internal_carrier : std_logic_vector(DATA_WIDTH-1 downto 0);
+    -- 3. Interconnect Signal linking Carrier Output to the Mixer 
+    signal internal_carrier : std_logic_vector(DATA_WIDTH-1 downto 0); 
 
 begin
 
-    -- 1. Instance of the LUT to generate the Carrier Sine Wave
-    u_carrier_lut : lut
+    -- Instance 1: Generate the Carrier Sine Wave dynamically via Clock Math
+    u_carrier_gen : carrier_generator
         generic map (
-            ADDR_WIDTH => ADDR_WIDTH,
-            DATA_WIDTH => DATA_WIDTH
+            CLK_FREQ     => CLK_FREQ,
+            DESIRED_FREQ => DESIRED_FREQ,
+            WIDTH        => DATA_WIDTH
         )
         port map (
-            addr   => addr,
-            output => internal_carrier
+            clk      => clk,            --
+            sine_out => internal_carrier -- 
         );
 
-    -- 2. Instance of the Multiplier to mix the Carrier with the Message
+    -- Instance 2: Mix Carrier wave with Message using the Selected Operator 
     u_mixer : multiplier
         generic map (
-            DATA_WIDTH => DATA_WIDTH
+            DATA_WIDTH => DATA_WIDTH --
         )
         port map (
-            carrier   => internal_carrier,
-            msg       => msg,
-            am_signal => am_out
+            carrier   => internal_carrier, -- 
+            msg       => msg,              -- 
+            am_signal => am_out            -- 
         );
 
 end architecture structural;
