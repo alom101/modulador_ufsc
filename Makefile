@@ -2,18 +2,18 @@
 # GHDL ORDERED MULTI-FILE MAKEFILE
 # ==============================================================================
 
-# 1. Design Configuration
 # Set this to the base name of your testbench entity (without _testbench)
-TOP_MODULE = counter
+TOP_MODULE = carrier_generator
 
-# 2. Automatically Find and Separate VHDL Files
+
+# File lists
 ALL_SOURCES := $(wildcard *.vhd)
 
-# Separate testbenches from core entity files based on your naming convention
 TB_SOURCES  := $(filter %_testbench.vhd, $(ALL_SOURCES))
 CORE_SOURCES:= $(filter-out %_testbench.vhd, $(ALL_SOURCES))
 
-# 3. File and Tool Configurations
+TB_ENTITIES = $(patsubst %.vhd,%,$(TB_SOURCES))
+
 TB_ENTITY = $(TOP_MODULE)_testbench
 VCD_FILE  = $(TOP_MODULE)_testbench.vcd
 
@@ -25,40 +25,48 @@ FLAGS     = --std=08 # Adjust to --std=93 or --std=02 depending on your VHDL ver
 # Targets
 # ==============================================================================
 
-.PHONY: all analyze_core analyze_tb analyze elaborate run view clean
 
 # Default target
-all: view
+all: view_toplevel
 
-# Step 1a: Analyze core design files first
 analyze_core: $(CORE_SOURCES)
+	@echo "--------------------------------------------"
 	@echo "Analyzing core entities: $(CORE_SOURCES)"
 	$(GHDL) -a $(FLAGS) $(CORE_SOURCES)
 
-# Step 1b: Analyze testbenches only after core entities are safely in the 'work' library
 analyze_tb: analyze_core $(TB_SOURCES)
+	@echo "--------------------------------------------"
 	@echo "Analyzing testbenches: $(TB_SOURCES)"
 	$(GHDL) -a $(FLAGS) $(TB_SOURCES)
 
-# Unified analyze target for dependency chaining
-analyze: analyze_tb
+elaborate: analyze_tb
+	@echo "--------------------------------------------"
+	@echo "Starting elaboration..."
+	@for tb in $(TB_ENTITIES); do \
+		echo "Elaborating testbench entity: $$tb"; \
+		$(GHDL) -e $(FLAGS) $$tb; \
+	done
 
-# Step 2: Elaborate the specific testbench entity
-elaborate: analyze
-	@echo "Elaborating testbench: ${TB_ENTITY}"
-	$(GHDL) -e $(FLAGS) $(TB_ENTITY)
-
-# Step 3: Run the simulation and dump the VCD file
 run: elaborate
-	@echo "Running testbench: ${TB_ENTITY}"
-	$(GHDL) -r $(FLAGS) $(TB_ENTITY) --vcd=$(VCD_FILE)
+	@echo "--------------------------------------------"
+	@echo "Starting simulation..."
+	@for tb in $(TB_ENTITIES); do \
+		echo "Simulating testbench entity: $$tb"; \
+		$(GHDL) -r $(FLAGS) $$tb --vcd=$$tb.vcd; \
+	done
 
-# Step 4: Open the results in GTKWave
-view: run
-	@echo "Viewing vcd file"
+view_toplevel: run
+	@echo "--------------------------------------------"
+	@echo "Viewing toplevel vcd file"
 	$(WAVE_VIEW) $(VCD_FILE)
 
-# Clean up generated simulation framework files
+view_all: run
+	@echo "--------------------------------------------"
+	@echo "Viewing all vcd files"
+	@for tb in $(TB_ENTITIES); do \
+		$(WAVE_VIEW) $$tb.vcd & \
+	done
+
 clean:
 	$(GHDL) --clean
 	rm -f *.o *.cf *_testbench *.vcd
